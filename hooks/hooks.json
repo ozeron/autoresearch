@@ -1,0 +1,26 @@
+{
+  "description": "Autoresearch loop hooks: prevent stopping during active experiments and inject session state on start",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/stop-guard.sh"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

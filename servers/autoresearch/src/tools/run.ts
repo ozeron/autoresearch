@@ -5,6 +5,17 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import type { LastRunChecks } from "../types.js";
 
+/** Currently running child process, tracked for cleanup on server exit. */
+let activeChild: child_process.ChildProcess | null = null;
+
+/** Kill the active child process if any (called on server exit). */
+export function killActiveChild(): void {
+  if (activeChild) {
+    activeChild.kill("SIGKILL");
+    activeChild = null;
+  }
+}
+
 /**
  * Spawns a bash command, captures combined stdout+stderr, handles timeout.
  */
@@ -24,6 +35,7 @@ function spawnCommand(
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    activeChild = proc;
     let output = "";
     proc.stdout.on("data", (d: Buffer) => {
       output += d.toString();
@@ -38,6 +50,7 @@ function spawnCommand(
     }, timeoutMs);
     proc.on("close", (code) => {
       clearTimeout(timer);
+      activeChild = null;
       resolve({
         exitCode: code,
         timedOut,

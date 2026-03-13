@@ -1,5 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { LastRunChecks } from "../types.js";
+/** Kill the active child process if any (called on server exit). */
+export declare function killActiveChild(): void;
 /**
  * Registers the run_experiment MCP tool on the given server.
  *

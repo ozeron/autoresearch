@@ -130,12 +130,10 @@ export function registerLogTool(
         const commitMsg = `${params.description}\n\nAutoresearch run ${runNumber}: ${JSON.stringify({ metric: params.metric, status: params.status, metrics: params.metrics ?? {} })}`;
 
         try {
-          child_process.execSync(
-            `git add -A && git commit -m "${commitMsg.replace(/"/g, '\\"')}"`,
-            { cwd: projectDir }
-          );
+          child_process.execFileSync("git", ["add", "-A"], { cwd: projectDir });
+          child_process.execFileSync("git", ["commit", "-m", commitMsg], { cwd: projectDir });
           const actualHash = child_process
-            .execSync("git rev-parse --short=7 HEAD", { cwd: projectDir })
+            .execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { cwd: projectDir })
             .toString()
             .trim();
           experiment.commit = actualHash;

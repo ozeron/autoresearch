@@ -2,7 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { reconstructState } from "./state.js";
 import { registerInitTool } from "./tools/init.js";
-import { registerRunTool } from "./tools/run.js";
+import { registerRunTool, killActiveChild } from "./tools/run.js";
 import { registerLogTool } from "./tools/log.js";
 import { registerDashboardTool } from "./tools/dashboard.js";
 import type { ExperimentState, LastRunChecks } from "./types.js";
@@ -36,6 +36,9 @@ registerInitTool(server, getState, setState, getProjectDir);
 registerRunTool(server, setLastRunChecks, getProjectDir);
 registerLogTool(server, getState, setState, getLastRunChecks, clearLastRunChecks, incrementExperiments, getProjectDir);
 registerDashboardTool(server, getState);
+
+// Cleanup child processes on exit
+process.on("exit", killActiveChild);
 
 // Connect via stdio transport
 const transport = new StdioServerTransport();

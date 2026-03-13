@@ -2,6 +2,15 @@ import { z } from "zod";
 import * as child_process from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
+/** Currently running child process, tracked for cleanup on server exit. */
+let activeChild = null;
+/** Kill the active child process if any (called on server exit). */
+export function killActiveChild() {
+    if (activeChild) {
+        activeChild.kill("SIGKILL");
+        activeChild = null;
+    }
+}
 /**
  * Spawns a bash command, captures combined stdout+stderr, handles timeout.
  */
@@ -12,6 +21,7 @@ function spawnCommand(cmd, cwd, timeoutMs) {
             cwd,
             stdio: ["ignore", "pipe", "pipe"],
         });
+        activeChild = proc;
         let output = "";
         proc.stdout.on("data", (d) => {
             output += d.toString();
@@ -26,6 +36,7 @@ function spawnCommand(cmd, cwd, timeoutMs) {
         }, timeoutMs);
         proc.on("close", (code) => {
             clearTimeout(timer);
+            activeChild = null;
             resolve({
                 exitCode: code,
                 timedOut,

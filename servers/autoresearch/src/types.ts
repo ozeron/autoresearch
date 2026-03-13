@@ -24,20 +24,6 @@ export interface ExperimentState {
   currentSegment: number;
 }
 
-export interface RunDetails {
-  command: string;
-  exitCode: number | null;
-  durationSeconds: number;
-  passed: boolean;
-  crashed: boolean;
-  timedOut: boolean;
-  tailOutput: string;
-  checksPass: boolean | null;
-  checksTimedOut: boolean;
-  checksOutput: string;
-  checksDuration: number;
-}
-
 export interface LastRunChecks {
   pass: boolean;
   output: string;

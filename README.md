@@ -1,6 +1,6 @@
 # claude-autoresearch
 
-Claude Code plugin for autonomous experiment loops. Forked and ported from [davebcn87/pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — the original plugin for Codex.
+Claude Code plugin for autonomous experiment loops. Forked and ported from [davebcn87/pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — the original plugin for Pi.
 
 Try ideas, measure results, keep improvements, discard failures, repeat forever.
 

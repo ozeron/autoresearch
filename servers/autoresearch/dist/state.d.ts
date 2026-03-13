@@ -25,6 +25,11 @@ export declare function currentResults(results: ExperimentResult[], segment: num
  */
 export declare function findBaselineMetric(results: ExperimentResult[], segment: number): number | null;
 /**
+ * Registers any new secondary metric names from the given metrics record,
+ * with units auto-detected from their names.
+ */
+export declare function registerSecondaryMetrics(state: ExperimentState, metrics: Record<string, number>): void;
+/**
  * Reads autoresearch.jsonl from projectDir and reconstructs the ExperimentState.
  * Also attempts to load .autoresearch-last-run.json for crash resilience.
  *

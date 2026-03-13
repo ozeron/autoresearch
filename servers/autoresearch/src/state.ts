@@ -4,7 +4,6 @@ import type {
   ExperimentResult,
   ExperimentState,
   LastRunChecks,
-  MetricDef,
 } from "./types.js";
 
 /**
@@ -71,6 +70,21 @@ export function findBaselineMetric(
 }
 
 /**
+ * Registers any new secondary metric names from the given metrics record,
+ * with units auto-detected from their names.
+ */
+export function registerSecondaryMetrics(
+  state: ExperimentState,
+  metrics: Record<string, number>
+): void {
+  for (const name of Object.keys(metrics)) {
+    if (!state.secondaryMetrics.some((m) => m.name === name)) {
+      state.secondaryMetrics.push({ name, unit: detectMetricUnit(name) });
+    }
+  }
+}
+
+/**
  * Reads autoresearch.jsonl from projectDir and reconstructs the ExperimentState.
  * Also attempts to load .autoresearch-last-run.json for crash resilience.
  *
@@ -126,14 +140,7 @@ export function reconstructState(projectDir: string): {
         state.results.push(result);
 
         // Register secondary metrics with auto-detected units
-        for (const name of Object.keys(result.metrics)) {
-          const alreadyRegistered = state.secondaryMetrics.find(
-            (m: MetricDef) => m.name === name
-          );
-          if (!alreadyRegistered) {
-            state.secondaryMetrics.push({ name, unit: detectMetricUnit(name) });
-          }
-        }
+        registerSecondaryMetrics(state, result.metrics);
       } catch {
         // Skip malformed lines
       }

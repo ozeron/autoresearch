@@ -35,7 +35,7 @@ export function registerInitTool(
           "Unit: 'µs', 'ms', 's', 'kb', 'mb', or '' for unitless. Default: auto-detect or ''"
         ),
       direction: z
-        .string()
+        .enum(["lower", "higher"])
         .optional()
         .describe("'lower' or 'higher' is better. Default: 'lower'"),
     },
@@ -50,19 +50,7 @@ export function registerInitTool(
       const resolvedUnit =
         metric_unit !== undefined ? metric_unit : detectMetricUnit(metric_name);
 
-      // Validate and resolve direction.
-      const rawDirection = direction ?? "lower";
-      if (rawDirection !== "lower" && rawDirection !== "higher") {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `Error: direction must be "lower" or "higher", got "${rawDirection}"`,
-            },
-          ],
-        };
-      }
-      const resolvedDirection: "lower" | "higher" = rawDirection;
+      const resolvedDirection = direction ?? "lower";
 
       // Build the updated state.
       const updatedState: ExperimentState = {

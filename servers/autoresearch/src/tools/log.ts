@@ -9,9 +9,10 @@ import type {
   LastRunChecks,
 } from "../types.js";
 import {
+  currentResults,
   findBaselineMetric,
   isBetter,
-  detectMetricUnit,
+  registerSecondaryMetrics,
 } from "../state.js";
 import { renderCompactDashboard } from "../render.js";
 
@@ -68,10 +69,8 @@ export function registerLogTool(
       }
 
       // 2. Validate secondary metrics consistency
-      const currentSegmentResults = state.results.filter(
-        (r) => r.segment === state.currentSegment
-      );
-      const previousResultsWithMetrics = currentSegmentResults.filter(
+      const segmentResults = currentResults(state.results, state.currentSegment);
+      const previousResultsWithMetrics = segmentResults.filter(
         (r) => Object.keys(r.metrics).length > 0
       );
 
@@ -124,9 +123,7 @@ export function registerLogTool(
 
       // 4. If "keep": run git commit
       if (params.status === "keep") {
-        const runNumber =
-          state.results.filter((r) => r.segment === state.currentSegment)
-            .length + 1;
+        const runNumber = segmentResults.length + 1;
         const commitMsg = `${params.description}\n\nAutoresearch run ${runNumber}: ${JSON.stringify({ metric: params.metric, status: params.status, metrics: params.metrics ?? {} })}`;
 
         try {
@@ -149,29 +146,17 @@ export function registerLogTool(
 
       // 6. Register new secondary metric names
       if (params.metrics) {
-        for (const name of Object.keys(params.metrics)) {
-          const alreadyRegistered = state.secondaryMetrics.find(
-            (m) => m.name === name
-          );
-          if (!alreadyRegistered) {
-            state.secondaryMetrics.push({
-              name,
-              unit: detectMetricUnit(name),
-            });
-          }
-        }
+        registerSecondaryMetrics(state, params.metrics);
       }
 
       // 7. Push result to state.results
       state.results.push(experiment);
 
       // 8. Update bestMetric
-      const baseline = findBaselineMetric(state.results, state.currentSegment);
+      const updatedSegmentResults = currentResults(state.results, state.currentSegment);
+      const baseline = updatedSegmentResults.length > 0 ? updatedSegmentResults[0]!.metric : null;
       state.bestMetric = baseline;
 
-      const updatedSegmentResults = state.results.filter(
-        (r) => r.segment === state.currentSegment
-      );
       for (const r of updatedSegmentResults) {
         if (
           r.status === "keep" &&
@@ -183,9 +168,7 @@ export function registerLogTool(
       }
 
       // 9. Append to autoresearch.jsonl AFTER git commit
-      const runNumber = state.results.filter(
-        (r) => r.segment === state.currentSegment
-      ).length;
+      const runNumber = updatedSegmentResults.length;
       const line = JSON.stringify({ run: runNumber, ...experiment });
       fs.appendFileSync(path.join(projectDir, "autoresearch.jsonl"), line + "\n");
 
@@ -202,11 +185,9 @@ export function registerLogTool(
       clearLastRunChecks();
       const lastRunPath = path.join(projectDir, ".autoresearch-last-run.json");
       try {
-        if (fs.existsSync(lastRunPath)) {
-          fs.unlinkSync(lastRunPath);
-        }
+        fs.unlinkSync(lastRunPath);
       } catch {
-        // Ignore errors deleting last-run file
+        // Ignore ENOENT or other errors
       }
 
       // 13. setState with updated state

@@ -52,6 +52,17 @@ export function findBaselineMetric(results, segment) {
     return cur.length > 0 ? cur[0].metric : null;
 }
 /**
+ * Registers any new secondary metric names from the given metrics record,
+ * with units auto-detected from their names.
+ */
+export function registerSecondaryMetrics(state, metrics) {
+    for (const name of Object.keys(metrics)) {
+        if (!state.secondaryMetrics.some((m) => m.name === name)) {
+            state.secondaryMetrics.push({ name, unit: detectMetricUnit(name) });
+        }
+    }
+}
+/**
  * Reads autoresearch.jsonl from projectDir and reconstructs the ExperimentState.
  * Also attempts to load .autoresearch-last-run.json for crash resilience.
  *
@@ -101,12 +112,7 @@ export function reconstructState(projectDir) {
                 };
                 state.results.push(result);
                 // Register secondary metrics with auto-detected units
-                for (const name of Object.keys(result.metrics)) {
-                    const alreadyRegistered = state.secondaryMetrics.find((m) => m.name === name);
-                    if (!alreadyRegistered) {
-                        state.secondaryMetrics.push({ name, unit: detectMetricUnit(name) });
-                    }
-                }
+                registerSecondaryMetrics(state, result.metrics);
             }
             catch {
                 // Skip malformed lines

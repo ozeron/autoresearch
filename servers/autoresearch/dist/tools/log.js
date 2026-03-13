@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as child_process from "node:child_process";
 import { z } from "zod";
-import { findBaselineMetric, isBetter, detectMetricUnit, } from "../state.js";
+import { currentResults, isBetter, registerSecondaryMetrics, } from "../state.js";
 import { renderCompactDashboard } from "../render.js";
 /**
  * Registers the log_experiment MCP tool on the given server.
@@ -43,8 +43,8 @@ export function registerLogTool(server, getState, setState, getLastRunChecks, cl
             };
         }
         // 2. Validate secondary metrics consistency
-        const currentSegmentResults = state.results.filter((r) => r.segment === state.currentSegment);
-        const previousResultsWithMetrics = currentSegmentResults.filter((r) => Object.keys(r.metrics).length > 0);
+        const segmentResults = currentResults(state.results, state.currentSegment);
+        const previousResultsWithMetrics = segmentResults.filter((r) => Object.keys(r.metrics).length > 0);
         if (previousResultsWithMetrics.length > 0 && params.metrics) {
             const existingKeys = new Set(Object.keys(previousResultsWithMetrics[0].metrics));
             const newKeys = Object.keys(params.metrics);
@@ -84,8 +84,7 @@ export function registerLogTool(server, getState, setState, getLastRunChecks, cl
         let gitMessage = "";
         // 4. If "keep": run git commit
         if (params.status === "keep") {
-            const runNumber = state.results.filter((r) => r.segment === state.currentSegment)
-                .length + 1;
+            const runNumber = segmentResults.length + 1;
             const commitMsg = `${params.description}\n\nAutoresearch run ${runNumber}: ${JSON.stringify({ metric: params.metric, status: params.status, metrics: params.metrics ?? {} })}`;
             try {
                 child_process.execFileSync("git", ["add", "-A"], { cwd: projectDir });
@@ -108,22 +107,14 @@ export function registerLogTool(server, getState, setState, getLastRunChecks, cl
         }
         // 6. Register new secondary metric names
         if (params.metrics) {
-            for (const name of Object.keys(params.metrics)) {
-                const alreadyRegistered = state.secondaryMetrics.find((m) => m.name === name);
-                if (!alreadyRegistered) {
-                    state.secondaryMetrics.push({
-                        name,
-                        unit: detectMetricUnit(name),
-                    });
-                }
-            }
+            registerSecondaryMetrics(state, params.metrics);
         }
         // 7. Push result to state.results
         state.results.push(experiment);
         // 8. Update bestMetric
-        const baseline = findBaselineMetric(state.results, state.currentSegment);
+        const updatedSegmentResults = currentResults(state.results, state.currentSegment);
+        const baseline = updatedSegmentResults.length > 0 ? updatedSegmentResults[0].metric : null;
         state.bestMetric = baseline;
-        const updatedSegmentResults = state.results.filter((r) => r.segment === state.currentSegment);
         for (const r of updatedSegmentResults) {
             if (r.status === "keep" &&
                 state.bestMetric !== null &&
@@ -132,7 +123,7 @@ export function registerLogTool(server, getState, setState, getLastRunChecks, cl
             }
         }
         // 9. Append to autoresearch.jsonl AFTER git commit
-        const runNumber = state.results.filter((r) => r.segment === state.currentSegment).length;
+        const runNumber = updatedSegmentResults.length;
         const line = JSON.stringify({ run: runNumber, ...experiment });
         fs.appendFileSync(path.join(projectDir, "autoresearch.jsonl"), line + "\n");
         // 10. Increment experiments counter
@@ -143,12 +134,10 @@ export function registerLogTool(server, getState, setState, getLastRunChecks, cl
         clearLastRunChecks();
         const lastRunPath = path.join(projectDir, ".autoresearch-last-run.json");
         try {
-            if (fs.existsSync(lastRunPath)) {
-                fs.unlinkSync(lastRunPath);
-            }
+            fs.unlinkSync(lastRunPath);
         }
         catch {
-            // Ignore errors deleting last-run file
+            // Ignore ENOENT or other errors
         }
         // 13. setState with updated state
         setState(state);

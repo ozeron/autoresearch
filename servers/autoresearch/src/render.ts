@@ -1,5 +1,5 @@
 import type { ExperimentState, ExperimentResult } from "./types.js";
-import { currentResults, findBaselineMetric } from "./state.js";
+import { currentResults } from "./state.js";
 
 /**
  * Formats a number with comma-separated thousands groups.
@@ -47,21 +47,13 @@ function padL(s: string, width: number): string {
 function computeDelta(
   result: ExperimentResult,
   baseline: number | null
-): { metricDisplay: string; deltaDisplay: string } {
-  if (result.status === "crash") {
-    return { metricDisplay: "crash", deltaDisplay: "-" };
-  }
-
-  const metricDisplay = formatNum(result.metric, "");
-
-  if (baseline === null || baseline === 0) {
-    return { metricDisplay, deltaDisplay: "-" };
-  }
+): string {
+  if (result.status === "crash") return "-";
+  if (baseline === null || baseline === 0) return "-";
 
   const pct = ((result.metric - baseline) / Math.abs(baseline)) * 100;
   const sign = pct >= 0 ? "+" : "";
-  const deltaDisplay = `${sign}${pct.toFixed(1)}%`;
-  return { metricDisplay, deltaDisplay };
+  return `${sign}${pct.toFixed(1)}%`;
 }
 
 /**
@@ -85,12 +77,15 @@ function buildSummary(
   checksFailed: number;
 } {
   const results = currentResults(state.results, state.currentSegment);
-  const kept = results.filter((r) => r.status === "keep").length;
-  const discarded = results.filter((r) => r.status === "discard").length;
-  const crashes = results.filter((r) => r.status === "crash").length;
-  const checksFailed = results.filter(
-    (r) => r.status === "checks_failed"
-  ).length;
+  let kept = 0, discarded = 0, crashes = 0, checksFailed = 0;
+  for (const r of results) {
+    switch (r.status) {
+      case "keep": kept++; break;
+      case "discard": discarded++; break;
+      case "crash": crashes++; break;
+      case "checks_failed": checksFailed++; break;
+    }
+  }
   return { total: results.length, kept, discarded, crashes, checksFailed };
 }
 
@@ -106,7 +101,8 @@ function buildSummaryLines(state: ExperimentState): string[] {
   if (checksFailed > 0) parts.push(`${checksFailed} checks_failed`);
   const line1 = `${label}: ${parts.join(" | ")}`;
 
-  const baseline = findBaselineMetric(state.results, state.currentSegment);
+  const segResults = currentResults(state.results, state.currentSegment);
+  const baseline = segResults.length > 0 ? segResults[0]!.metric : null;
   const bestMetric = state.bestMetric;
   const unit = state.metricUnit;
 
@@ -137,7 +133,7 @@ function buildTableRow(
   const num = padL(String(index), colWidths[0]!);
   const commit = padR(result.commit.slice(0, 7), colWidths[1]!);
   const metric = padR(formatResultMetric(result, unit), colWidths[2]!);
-  const { deltaDisplay } = computeDelta(result, baseline);
+  const deltaDisplay = computeDelta(result, baseline);
   const delta = padR(deltaDisplay, colWidths[3]!);
   const status = padR(result.status, colWidths[4]!);
   const desc = result.description;
@@ -176,7 +172,7 @@ function computeColumnWidths(
       minWidths[2]!,
       formatResultMetric(result, unit).length
     );
-    const { deltaDisplay } = computeDelta(result, baseline);
+    const deltaDisplay = computeDelta(result, baseline);
     minWidths[3] = Math.max(minWidths[3]!, deltaDisplay.length);
     minWidths[4] = Math.max(minWidths[4]!, result.status.length);
     minWidths[5] = Math.max(minWidths[5]!, result.description.length);
@@ -232,60 +228,17 @@ function buildTableHeader(
 }
 
 /**
- * Renders a compact dashboard: summary lines + last N runs table (default 6).
+ * Shared dashboard renderer used by both compact and full variants.
  */
-export function renderCompactDashboard(
+function renderDashboard(
   state: ExperimentState,
-  lastN: number = 6
+  lastN: number,
+  secondary: Array<{ name: string; unit: string }>
 ): string {
   const summaryLines = buildSummaryLines(state);
   const results = currentResults(state.results, state.currentSegment);
-  const baseline = findBaselineMetric(state.results, state.currentSegment);
+  const baseline = results.length > 0 ? results[0]!.metric : null;
   const unit = state.metricUnit;
-
-  const rows = results.slice(-lastN);
-  const lines: string[] = [...summaryLines, ""];
-
-  if (rows.length === 0) {
-    lines.push("No runs yet.");
-    return lines.join("\n");
-  }
-
-  const colWidths = computeColumnWidths(rows, unit, [], baseline);
-  const { header, separator } = buildTableHeader(colWidths, []);
-  lines.push(header);
-  lines.push(separator);
-
-  const startIndex = results.length - rows.length + 1;
-  for (let i = 0; i < rows.length; i++) {
-    const result = rows[i]!;
-    const rowLine = buildTableRow(
-      startIndex + i,
-      result,
-      baseline,
-      unit,
-      colWidths,
-      []
-    );
-    lines.push(rowLine);
-  }
-
-  return lines.join("\n");
-}
-
-/**
- * Renders a full dashboard: summary lines + all runs table with secondary
- * metrics columns (default lastN=50).
- */
-export function renderFullDashboard(
-  state: ExperimentState,
-  lastN: number = 50
-): string {
-  const summaryLines = buildSummaryLines(state);
-  const results = currentResults(state.results, state.currentSegment);
-  const baseline = findBaselineMetric(state.results, state.currentSegment);
-  const unit = state.metricUnit;
-  const secondary = state.secondaryMetrics;
 
   const rows = results.slice(-lastN);
   const lines: string[] = [...summaryLines, ""];
@@ -302,17 +255,29 @@ export function renderFullDashboard(
 
   const startIndex = results.length - rows.length + 1;
   for (let i = 0; i < rows.length; i++) {
-    const result = rows[i]!;
-    const rowLine = buildTableRow(
-      startIndex + i,
-      result,
-      baseline,
-      unit,
-      colWidths,
-      secondary
-    );
-    lines.push(rowLine);
+    lines.push(buildTableRow(startIndex + i, rows[i]!, baseline, unit, colWidths, secondary));
   }
 
   return lines.join("\n");
+}
+
+/**
+ * Renders a compact dashboard: summary lines + last N runs table (default 6).
+ */
+export function renderCompactDashboard(
+  state: ExperimentState,
+  lastN: number = 6
+): string {
+  return renderDashboard(state, lastN, []);
+}
+
+/**
+ * Renders a full dashboard: summary lines + all runs table with secondary
+ * metrics columns (default lastN=50).
+ */
+export function renderFullDashboard(
+  state: ExperimentState,
+  lastN: number = 50
+): string {
+  return renderDashboard(state, lastN, state.secondaryMetrics);
 }

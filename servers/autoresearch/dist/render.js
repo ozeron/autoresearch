@@ -38,14 +38,17 @@ function padL(s, width) {
  * Computes the delta percentage string for a result vs baseline.
  * Returns "crash" metric display and "-" delta for crashed runs.
  */
+function fmtPct(value, baseline) {
+    const pct = ((value - baseline) / Math.abs(baseline)) * 100;
+    const sign = pct >= 0 ? "+" : "";
+    return `${sign}${pct.toFixed(1)}%`;
+}
 function computeDelta(result, baseline) {
     if (result.status === "crash")
         return "-";
     if (baseline === null || baseline === 0)
         return "-";
-    const pct = ((result.metric - baseline) / Math.abs(baseline)) * 100;
-    const sign = pct >= 0 ? "+" : "";
-    return `${sign}${pct.toFixed(1)}%`;
+    return fmtPct(result.metric, baseline);
 }
 /**
  * Formats a metric value display for a result (with unit appended).
@@ -58,7 +61,10 @@ function formatResultMetric(result, unit) {
 /**
  * Builds summary statistics from the segment's results.
  */
-function buildSummary(state) {
+/**
+ * Builds the header summary lines for the dashboard.
+ */
+function buildSummaryLines(state) {
     const results = currentResults(state.results, state.currentSegment);
     let kept = 0, discarded = 0, crashes = 0, checksFailed = 0;
     for (const r of results) {
@@ -77,31 +83,19 @@ function buildSummary(state) {
                 break;
         }
     }
-    return { total: results.length, kept, discarded, crashes, checksFailed };
-}
-/**
- * Builds the header summary lines for the dashboard.
- */
-function buildSummaryLines(state) {
-    const { total, kept, discarded, crashes, checksFailed } = buildSummary(state);
     const label = state.name ? `autoresearch (${state.name})` : "autoresearch";
-    const parts = [`${total} runs`, `${kept} kept`, `${discarded} discarded`];
+    const parts = [`${results.length} runs`, `${kept} kept`, `${discarded} discarded`];
     if (crashes > 0)
         parts.push(`${crashes} crash`);
     if (checksFailed > 0)
         parts.push(`${checksFailed} checks_failed`);
     const line1 = `${label}: ${parts.join(" | ")}`;
-    const segResults = currentResults(state.results, state.currentSegment);
-    const baseline = segResults.length > 0 ? segResults[0].metric : null;
+    const baseline = results.length > 0 ? results[0].metric : null;
     const bestMetric = state.bestMetric;
     const unit = state.metricUnit;
-    const baselineStr = formatNum(baseline, unit);
-    const bestStr = formatNum(bestMetric, unit);
-    let line2 = `baseline: ${baselineStr} | best: ${bestStr}`;
+    let line2 = `baseline: ${formatNum(baseline, unit)} | best: ${formatNum(bestMetric, unit)}`;
     if (baseline !== null && bestMetric !== null && baseline !== 0) {
-        const pct = ((bestMetric - baseline) / Math.abs(baseline)) * 100;
-        const sign = pct >= 0 ? "+" : "";
-        line2 += ` (${sign}${pct.toFixed(1)}%)`;
+        line2 += ` (${fmtPct(bestMetric, baseline)})`;
     }
     return [line1, line2];
 }

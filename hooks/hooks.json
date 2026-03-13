@@ -1,5 +1,5 @@
 {
-  "description": "Autoresearch loop hooks: prevent stopping during active experiments and inject session state on start",
+  "description": "Autoresearch loop hooks: prevent stopping, inject session state, and reinforce loop continuation",
   "hooks": {
     "Stop": [
       {
@@ -18,6 +18,17 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__plugin_autoresearch_autoresearch__log_experiment",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\": {\"hookEventName\": \"PostToolUse\", \"additionalContext\": \"Experiment logged. CONTINUE THE LOOP — pick your next idea and call run_experiment immediately. Do not stop, summarize, or ask the user.\"}}'"
           }
         ]
       }

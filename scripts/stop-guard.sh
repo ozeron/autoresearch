@@ -1,39 +1,21 @@
 #!/bin/bash
-# Guard: check jq is available
-command -v jq >/dev/null 2>&1 || { echo "autoresearch hooks require jq. Install: brew install jq" >&2; exit 0; }
+# Stop hook: block stopping when autoresearch loop is active
+# No jq dependency — uses grep for JSON parsing
 
 INPUT=$(cat)
 
-# Extract project dir from env or stdin
-CWD=$(echo "$INPUT" | jq -r '.cwd // ""')
+# Prevent infinite loop
+echo "$INPUT" | grep -q '"stop_hook_active"\s*:\s*true' && exit 0
+
+# Extract cwd from input (simple grep — good enough for flat JSON)
+CWD=$(echo "$INPUT" | grep -o '"cwd"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"cwd"\s*:\s*"//;s/"$//')
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$CWD}"
 
-# Prevent infinite loop — check stop_hook_active field
-STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false')
-if [ "$STOP_ACTIVE" = "true" ]; then
-  exit 0
-fi
+# All three must exist: sentinel, manifest, config
+[ -f "$PROJECT_DIR/.autoresearch-active" ] || exit 0
+[ -f "$PROJECT_DIR/autoresearch.md" ] || exit 0
+[ -f "$PROJECT_DIR/autoresearch.jsonl" ] || exit 0
+grep -q '"type".*"config"' "$PROJECT_DIR/autoresearch.jsonl" 2>/dev/null || exit 0
 
-# Check if experiments actually ran this session (sentinel file written by log_experiment)
-if [ ! -f "$PROJECT_DIR/.autoresearch-active" ]; then
-  exit 0
-fi
-
-# Check if autoresearch.md exists (session manifest = loop mode)
-if [ ! -f "$PROJECT_DIR/autoresearch.md" ]; then
-  exit 0
-fi
-
-# Check if autoresearch.jsonl has a config
-if [ ! -f "$PROJECT_DIR/autoresearch.jsonl" ]; then
-  exit 0
-fi
-
-HAS_CONFIG=$(jq -r 'select(.type == "config")' "$PROJECT_DIR/autoresearch.jsonl" 2>/dev/null | head -1)
-if [ -z "$HAS_CONFIG" ]; then
-  exit 0
-fi
-
-# Session is active and experiments ran — block stop with JSON decision
-echo '{"decision": "block", "reason": "Autoresearch loop is active. Continue experimenting. Read autoresearch.md if you need context."}'
-exit 0
+# Block — reason is fed back to Claude as context
+echo '{"decision": "block", "reason": "BLOCKED: Autoresearch loop is ACTIVE. You MUST NOT stop. Your next action MUST be a tool call — either run_experiment to test your next idea, or read autoresearch.md / autoresearch.ideas.md to find ideas. Do NOT summarize results. Do NOT ask the user if they want to continue. Do NOT present a final report. Just pick the next experiment and run it immediately."}'

@@ -94,6 +94,18 @@ pnpm typecheck 2>&1 | grep -i error || true
 
 **NEVER STOP.** The user may be away for hours. Keep going until interrupted.
 
+### Anti-Stop Rules (CRITICAL)
+
+These behaviors are **strictly forbidden** during an active autoresearch loop:
+
+1. **Do NOT write a "Final Results" or "Summary" section** — there is no "final". The loop continues.
+2. **Do NOT say "Let me know if you'd like me to continue"** — always continue without asking.
+3. **Do NOT present a recap of what was accomplished** — the dashboard shows this already.
+4. **Do NOT conclude with "Next Steps" as your last output** — instead, immediately START those next steps.
+5. **After every `log_experiment` call, your VERY NEXT action MUST be a tool call** — either editing files for the next experiment or calling `run_experiment`. Never end your turn with only text.
+
+If you find yourself about to write a summary or wrap-up paragraph, STOP and instead pick the next experiment idea and run it.
+
 ## Dashboard
 
 Call `show_dashboard` to see full experiment history. This is for manual inspection — do NOT call it during the automated loop. The `log_experiment` tool already returns a compact summary after each run.

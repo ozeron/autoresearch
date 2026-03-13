@@ -1,5 +1,4 @@
 {
-  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "autoresearch",
   "description": "Autonomous experiment loop for Claude Code — try ideas, keep what works, discard what doesn't, never stop.",
   "owner": {
@@ -13,8 +12,7 @@
       "author": {
         "name": "ozeron"
       },
-      "source": ".",
-      "category": "productivity"
+      "source": "./"
     }
   ]
 }

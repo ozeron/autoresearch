@@ -1,3 +1,5 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { reconstructState } from "./state.js";
@@ -5,8 +7,32 @@ import { registerInitTool } from "./tools/init.js";
 import { registerRunTool, killActiveChild } from "./tools/run.js";
 import { registerLogTool } from "./tools/log.js";
 import { registerDashboardTool } from "./tools/dashboard.js";
-// Resolve project directory
-const projectDir = process.env["PROJECT_DIR"] || process.cwd();
+/**
+ * Walk up from startDir looking for autoresearch.jsonl.
+ * Returns the directory containing it, or null if not found.
+ */
+function findProjectDir(startDir) {
+    let dir = path.resolve(startDir);
+    const root = path.parse(dir).root;
+    while (true) {
+        if (fs.existsSync(path.join(dir, "autoresearch.jsonl"))) {
+            return dir;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir || dir === root)
+            break;
+        dir = parent;
+    }
+    return null;
+}
+// Resolve project directory:
+// 1. Explicit PROJECT_DIR env var (if non-empty)
+// 2. Walk up from cwd() looking for autoresearch.jsonl
+// 3. Fall back to cwd() (init will create the file here)
+const envDir = process.env["PROJECT_DIR"];
+const projectDir = (envDir && envDir.trim() !== "")
+    ? envDir
+    : findProjectDir(process.cwd()) ?? process.cwd();
 // Reconstruct state from JSONL on startup
 const reconstructed = reconstructState(projectDir);
 let state = reconstructed.state;

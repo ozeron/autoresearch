@@ -11,6 +11,9 @@ echo "$INPUT" | grep -q '"stop_hook_active"\s*:\s*true' && exit 0
 CWD=$(echo "$INPUT" | grep -o '"cwd"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"cwd"\s*:\s*"//;s/"$//')
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$CWD}"
 
+# Paused for this project
+[ -f "$PROJECT_DIR/.autoresearch-paused" ] && exit 0
+
 # All three must exist: sentinel, manifest, config
 [ -f "$PROJECT_DIR/.autoresearch-active" ] || exit 0
 [ -f "$PROJECT_DIR/autoresearch.md" ] || exit 0

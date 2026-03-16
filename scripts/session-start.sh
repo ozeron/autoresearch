@@ -6,6 +6,9 @@ INPUT=$(cat)
 CWD=$(echo "$INPUT" | grep -o '"cwd"\s*:\s*"[^"]*"' | head -1 | sed 's/.*"cwd"\s*:\s*"//;s/"$//')
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$CWD}"
 
+# Paused for this project
+[ -f "$PROJECT_DIR/.autoresearch-paused" ] && exit 0
+
 JSONL="$PROJECT_DIR/autoresearch.jsonl"
 [ -f "$JSONL" ] || exit 0
 

@@ -1,0 +1,10 @@
+# Example Codex MCP configuration for claude-autoresearch.
+# Copy the relevant block into ~/.codex/config.toml or a project-local .codex/config.toml
+# and replace the placeholder paths.
+
+[mcp_servers.autoresearch]
+command = "node"
+args = ["/ABSOLUTE/PATH/TO/claude-autoresearch/servers/autoresearch/dist/index.js"]
+
+[mcp_servers.autoresearch.env]
+PROJECT_DIR = "/ABSOLUTE/PATH/TO/YOUR/PROJECT"

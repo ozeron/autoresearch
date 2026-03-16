@@ -16,8 +16,9 @@ Autonomous experiment loop: try ideas, keep what works, discard what doesn't, ne
 ## Setup
 
 1. Ask (or infer): **Goal**, **Command**, **Metric** (+ direction), **Files in scope**, **Constraints**.
-2. `git checkout -b autoresearch/<goal>-<date>`
-3. Read the source files. Understand the workload deeply before writing anything.
+2. `rm -f .autoresearch-paused` — re-enable if previously paused.
+3. `git checkout -b autoresearch/<goal>-<date>`
+4. Read the source files. Understand the workload deeply before writing anything.
 4. Write `autoresearch.md` and `autoresearch.sh` (see below). Commit both.
 5. `init_experiment` → run baseline → `log_experiment` → start looping immediately.
 

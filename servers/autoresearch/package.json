@@ -7,7 +7,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "bun build src/index.ts --target=node --outfile=dist/index.js",
     "dev": "tsx src/index.ts"
   },
   "dependencies": {

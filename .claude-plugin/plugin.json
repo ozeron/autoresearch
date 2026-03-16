@@ -1,12 +1,11 @@
 {
   "name": "autoresearch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Autonomous experiment loop: try ideas, keep what works, discard what doesn't, never stop.",
   "author": {
     "name": "ozeron"
   },
   "license": "MIT",
   "skills": "./skills/",
-  "hooks": "./hooks/hooks.json",
   "mcpServers": "./.mcp.json"
 }

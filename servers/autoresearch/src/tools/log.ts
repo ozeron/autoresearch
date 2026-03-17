@@ -170,7 +170,23 @@ export function registerLogTool(
       // 9. Append to autoresearch.jsonl AFTER git commit
       const runNumber = updatedSegmentResults.length;
       const line = JSON.stringify({ run: runNumber, ...experiment });
-      fs.appendFileSync(path.join(projectDir, "autoresearch.jsonl"), line + "\n");
+      const jsonlPath = path.join(projectDir, "autoresearch.jsonl");
+      fs.appendFileSync(jsonlPath, line + "\n");
+
+      // 9b. For non-keep: commit only autoresearch.jsonl to preserve the record
+      if (params.status !== "keep") {
+        try {
+          child_process.execFileSync("git", ["add", "autoresearch.jsonl"], { cwd: projectDir });
+          child_process.execFileSync("git", ["commit", "-m", `record: ${params.status} run ${runNumber} — ${params.description}`], { cwd: projectDir });
+          const actualHash = child_process
+            .execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { cwd: projectDir })
+            .toString()
+            .trim();
+          gitMessage += ` | jsonl committed as ${actualHash}`;
+        } catch {
+          // Not fatal — jsonl is still written to disk
+        }
+      }
 
       // 10. Increment experiments counter
       incrementExperiments();

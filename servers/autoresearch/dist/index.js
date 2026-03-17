@@ -19975,8 +19975,17 @@ Autoresearch run ${runNumber2}: ${JSON.stringify({ metric: params.metric, status
     }
     const runNumber = updatedSegmentResults.length;
     const line = JSON.stringify({ run: runNumber, ...experiment });
-    fs4.appendFileSync(path4.join(projectDir, "autoresearch.jsonl"), line + `
+    const jsonlPath = path4.join(projectDir, "autoresearch.jsonl");
+    fs4.appendFileSync(jsonlPath, line + `
 `);
+    if (params.status !== "keep") {
+      try {
+        child_process2.execFileSync("git", ["add", "autoresearch.jsonl"], { cwd: projectDir });
+        child_process2.execFileSync("git", ["commit", "-m", `record: ${params.status} run ${runNumber} — ${params.description}`], { cwd: projectDir });
+        const actualHash = child_process2.execFileSync("git", ["rev-parse", "--short=7", "HEAD"], { cwd: projectDir }).toString().trim();
+        gitMessage += ` | jsonl committed as ${actualHash}`;
+      } catch {}
+    }
     incrementExperiments();
     fs4.writeFileSync(path4.join(projectDir, ".autoresearch-active"), String(Date.now()));
     clearLastRunChecks();

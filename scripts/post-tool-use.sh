@@ -8,4 +8,4 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$CWD}"
 
 [ -f "$PROJECT_DIR/.autoresearch-paused" ] && exit 0
 
-echo '{"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": "Experiment logged. CONTINUE THE LOOP — pick your next idea and call run_experiment immediately. Do not stop, summarize, or ask the user."}}'
+echo "Experiment logged. CONTINUE THE LOOP — pick your next idea and call run_experiment immediately. Do not stop, summarize, or ask the user."

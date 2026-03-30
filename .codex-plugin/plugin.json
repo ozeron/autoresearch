@@ -1,0 +1,41 @@
+{
+  "name": "autoresearch",
+  "version": "1.0.6",
+  "description": "Autonomous experiment loop: try ideas, keep what works, discard what doesn't, never stop.",
+  "author": {
+    "name": "ozeron",
+    "url": "https://github.com/ozeron"
+  },
+  "homepage": "https://github.com/ozeron/claude-autoresearch",
+  "repository": "https://github.com/ozeron/claude-autoresearch",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "benchmarking",
+    "optimization",
+    "mcp",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Autoresearch",
+    "shortDescription": "Run autonomous experiment loops in your repo.",
+    "longDescription": "Autoresearch bundles the experiment-loop skill and MCP tools for iterative optimization work inside Codex.",
+    "developerName": "ozeron",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Shell"
+    ],
+    "websiteURL": "https://github.com/ozeron/claude-autoresearch",
+    "privacyPolicyURL": "https://openai.com/policies/privacy-policy/",
+    "termsOfServiceURL": "https://openai.com/policies/terms-of-use/",
+    "defaultPrompt": [
+      "Run autoresearch to optimize my test suite runtime.",
+      "Use autoresearch to improve this project's build time."
+    ],
+    "brandColor": "#1F6FEB"
+  }
+}

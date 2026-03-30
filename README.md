@@ -1,16 +1,30 @@
 # claude-autoresearch
 
-Claude Code plugin for autonomous experiment loops. Forked and ported from [davebcn87/pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — the original plugin for Pi.
+Autonomous experiment loop plugin for Claude Code and Codex. Forked and ported from [davebcn87/pi-autoresearch](https://github.com/davebcn87/pi-autoresearch) — the original plugin for Pi.
 
 Try ideas, measure results, keep improvements, discard failures, repeat forever.
 
 ## Install
+
+### Claude Code
 
 ```bash
 claude plugin install /path/to/claude-autoresearch
 ```
 
 Or add to your project's `.claude/plugins.json`.
+
+### Codex
+
+This repo also ships a Codex plugin manifest at `.codex-plugin/plugin.json`, a repo-local marketplace at `.agents/plugins/marketplace.json`, and repo-local hook maintenance scripts:
+
+```bash
+./scripts/install-codex-hooks.sh
+./scripts/uninstall-codex-hooks.sh
+```
+
+Codex-specific setup details live in [docs/README.codex.md](/Users/ozeron/code/claude-autoresearch/docs/README.codex.md) and [.codex/INSTALL.md](/Users/ozeron/code/claude-autoresearch/.codex/INSTALL.md).
+The same hook management logic is bundled under `skills/autoresearch-create/scripts/` so Codex skills can install or remove repo-local hooks after plugin installation.
 
 ### Requirements
 
@@ -51,6 +65,8 @@ The plugin blocks Claude from stopping while experiments are active. To stop:
 - **Stop hook** (`stop-guard.sh`) — blocks stopping when experiments are active
 - **SessionStart hook** (`session-start.sh`) — injects session summary on resume
 
+In Codex, those hooks are installed repo-local into `.codex/hooks.json`. The Claude-only `PostToolUse` MCP matcher is not installed for Codex because current Codex `PostToolUse` is Bash-only.
+
 ### Files Created in Your Project
 
 | File | Purpose |
@@ -85,6 +101,9 @@ The plugin ships with pre-built `dist/` so users don't need a build step.
 
 ```
 claude-autoresearch/
+├── .codex-plugin/plugin.json      Codex plugin manifest
+├── .agents/plugins/marketplace.json Repo-local Codex marketplace
+├── .codex/hooks.template.json     Repo-local Codex hook template
 ├── .claude-plugin/plugin.json     Plugin manifest
 ├── .mcp.json                      MCP server config
 ├── servers/autoresearch/

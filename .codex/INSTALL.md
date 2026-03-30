@@ -1,57 +1,64 @@
 # Installing claude-autoresearch for Codex
 
-Codex does not use the Claude plugin manifest. For Codex, this repository is exposed through:
+Codex support in this repo uses:
 
-- native skill discovery
-- native MCP configuration
+- [.codex-plugin/plugin.json](/Users/ozeron/code/claude-autoresearch/.codex-plugin/plugin.json)
+- [.agents/plugins/marketplace.json](/Users/ozeron/code/claude-autoresearch/.agents/plugins/marketplace.json)
+- repo-local hook maintenance scripts, bundled with the autoresearch skill
+- the shared MCP server in [.mcp.json](/Users/ozeron/code/claude-autoresearch/.mcp.json)
 
 ## Prerequisites
 
 - OpenAI Codex CLI
 - Node.js 18+
 - Git
+- Codex hooks feature enabled if you want stop/session hooks
 
 ## Install
 
-1. Clone this repository somewhere stable:
+1. Clone this repository somewhere stable and build the MCP server:
 
    ```bash
    git clone https://github.com/ozeron/claude-autoresearch.git ~/.codex/claude-autoresearch
-   ```
-
-2. Build the MCP server:
-
-   ```bash
    cd ~/.codex/claude-autoresearch/servers/autoresearch
    npm install
    npm run build
    ```
 
-3. Expose the skills to Codex:
+2. Enable hooks in your Codex config if you want the stop guard and resume context:
 
    ```bash
-   mkdir -p ~/.agents/skills
-   ln -s ~/.codex/claude-autoresearch/skills ~/.agents/skills/claude-autoresearch
+   # ~/.codex/config.toml
+   [features]
+   codex_hooks = true
    ```
 
-4. Register the MCP server in Codex config:
+3. Install the repo-local hooks for this checkout:
 
-   Copy `.codex/config.toml.example` into your Codex config and replace the placeholder paths.
+   ```bash
+   cd ~/.codex/claude-autoresearch
+   ./scripts/install-codex-hooks.sh
+   ```
 
-5. Restart Codex.
+   This creates or updates `.codex/hooks.json` in the repo and preserves unrelated hook entries that already exist there.
+   The same behavior is bundled under `skills/autoresearch-create/scripts/` so `autoresearch-create` can install hooks automatically.
+
+4. Open the repo in Codex and install the local plugin from the repo marketplace defined in `.agents/plugins/marketplace.json`.
+
+5. Restart Codex if the plugin or hooks are not detected immediately.
 
 ## Verify
 
-Check the skill link:
+Check that the plugin manifest exists:
 
 ```bash
-ls -la ~/.agents/skills/claude-autoresearch
+ls -la .codex-plugin/plugin.json .agents/plugins/marketplace.json
 ```
 
-Check Codex MCP config:
+Check that repo-local hooks were merged:
 
 ```bash
-codex mcp list
+cat .codex/hooks.json
 ```
 
 ## Update
@@ -62,12 +69,14 @@ git pull
 cd servers/autoresearch
 npm install
 npm run build
+./scripts/install-codex-hooks.sh
 ```
 
 ## Uninstall
 
 ```bash
-rm ~/.agents/skills/claude-autoresearch
+./scripts/uninstall-codex-hooks.sh
 ```
 
-Then remove the MCP entry from your Codex config and optionally delete the clone.
+This removes only autoresearch-managed entries from `.codex/hooks.json` and leaves unrelated repo-local hooks alone.
+The same removal flow is exposed in the `autoresearch-uninstall` skill.

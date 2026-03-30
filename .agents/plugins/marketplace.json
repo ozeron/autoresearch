@@ -1,0 +1,20 @@
+{
+  "name": "autoresearch-local",
+  "interface": {
+    "displayName": "Autoresearch Local"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
